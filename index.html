@@ -413,32 +413,49 @@ function calc(){
 }
 
 function calcProj(){
-  const ag=v('d-ag'),ns=v('d-ns'),dV=v('d-vendas'),tktD=v('d-ticket'),tktP=v('p-ticket');
+  const leads=v('d-leads'),ag=v('d-ag'),ns=v('d-ns'),dV=v('d-vendas'),tktD=v('d-ticket'),tktP=v('p-ticket');
   const reun=Math.max(0,ag-ns);
-  const pAg=v('m-ag'),pNs=v('m-ns'),pV=v('m-fech');
+  // Taxa de fechamento atual do diagnóstico
+  const txFechAtual=reun>0?dV/reun:0;
+  // Valores projetados digitados
+  const pAg=v('m-ag');
+  const pNs=v('m-ns');
   const pReun=Math.max(0,pAg-pNs);
+  // Vendas projetadas = reuniões projetadas × taxa de fechamento do diagnóstico
+  // MAS se o closer alterou m-fech diretamente, usa esse valor
+  // Lógica: m-fech armazena vendas projetadas calculadas ou editadas
+  const pV=Math.round(pReun*txFechAtual);
+  // Atualiza campo m-fech com o valor calculado (sem disparar oninput)
+  const mFechEl=document.getElementById('m-fech');
+  if(mFechEl && document.activeElement!==mFechEl) mFechEl.value=pV;
+  const pVfinal=v('m-fech'); // usa o que está no campo (pode ter sido editado manualmente)
+
   set('p-ag-atual',fmt(ag)); set('p-ns-atual',fmt(ns)); set('p-vendas-atual',fmt(dV));
   set('p-reun',fmt(pReun)); set('p-reun-b',fmt(pReun));
+
   const dR=pReun-reun;
   const elAg=document.getElementById('p-ag-delta');
   if(elAg){if(dR>0){elAg.textContent='+'+dR+' vs. atual';elAg.className='mult-res-delta dpos';}else if(dR<0){elAg.textContent=dR+' vs. atual';elAg.className='mult-res-delta dneg';}else{elAg.textContent='Igual ao diagnóstico';elAg.className='mult-res-delta dneu';}}
   const elNs=document.getElementById('p-ns-delta');
   if(elNs){if(dR>0){elNs.textContent='+'+dR+' vs. atual';elNs.className='mult-res-delta dpos';}else if(dR<0){elNs.textContent=dR+' vs. atual';elNs.className='mult-res-delta dneg';}else{elNs.textContent='Igual ao diagnóstico';elNs.className='mult-res-delta dneu';}}
-  const fatP=pV*tktP;
-  set('p-vendas',fmt(pV)); set('p-fat',fmtR(fatP));
-  const dV2=pV-dV,fatDelta=fatP-(dV*tktD);
+
+  const fatP=pVfinal*tktP;
+  set('p-vendas',fmt(pVfinal)); set('p-fat',fmtR(fatP));
+  const dV2=pVfinal-dV,fatDelta=fatP-(dV*tktD);
   const elV=document.getElementById('p-vendas-delta');
   if(elV){if(dV2>0){elV.textContent='+'+dV2+' vendas (+'+fmtR(fatDelta)+')';elV.className='mult-res-delta dpos';}else if(dV2<0){elV.textContent=dV2+' vendas ('+fmtR(fatDelta)+')';elV.className='mult-res-delta dneg';}else{elV.textContent='Igual ao diagnóstico';elV.className='mult-res-delta dneu';}}
+
   set('p-ticket-atual',fmtR(tktD));
   const tD=tktP-tktD;
   const elT=document.getElementById('p-ticket-delta');
   if(elT){if(tD>0){elT.textContent='+'+fmtR(tD)+' por venda';elT.className='mult-res-delta dpos';}else if(tD<0){elT.textContent=fmtR(tD)+' por venda';elT.className='mult-res-delta dneg';}else{elT.textContent='Mesmo ticket atual';elT.className='mult-res-delta dneu';}}
-  const tktImp=(pV*tktP)-(pV*tktD);
-  set('p-ticket-impact',(tktImp>=0?'+':'')+fmtR(tktImp)+' sobre '+fmt(pV)+' vendas');
-  const fatAt=dV*tktD,fatPj=pV*tktP,fatDiff=fatPj-fatAt;
+  const tktImp=(pVfinal*tktP)-(pVfinal*tktD);
+  set('p-ticket-impact',(tktImp>=0?'+':'')+fmtR(tktImp)+' sobre '+fmt(pVfinal)+' vendas');
+
+  const fatAt=dV*tktD,fatPj=pVfinal*tktP,fatDiff=fatPj-fatAt;
   const fatPct=fatAt>0?Math.round(fatDiff/fatAt*100):0;
   set('fat-atual',fmtR(fatAt)); set('fat-atual-sub',fmt(dV)+' vendas × '+fmtR(tktD));
-  set('fat-proj',fmtR(fatPj)); set('fat-proj-sub',fmt(pV)+' vendas × '+fmtR(tktP));
+  set('fat-proj',fmtR(fatPj)); set('fat-proj-sub',fmt(pVfinal)+' vendas × '+fmtR(tktP));
   const gEl=document.getElementById('fat-gain'),gpEl=document.getElementById('fat-gain-pct');
   if(gEl){
     if(fatDiff>0){gEl.textContent='+'+fmtR(fatDiff)+' adicionais';gEl.className='fat-gain pos';if(gpEl)gpEl.textContent='+'+fatPct+'% acima do cenário atual';}
